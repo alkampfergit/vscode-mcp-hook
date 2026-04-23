@@ -29,10 +29,10 @@ npm install
 npm run compile
 ```
 
-Press **F5** in VSCode to launch an Extension Development Host. On first activation
-the extension auto-creates `.vscode/mcp.json` (for the Claude Code VS Code extension)
-and `.mcp.json` (for the Claude Code CLI) in the workspace root — no manual config
-needed. Both files should be added to `.gitignore`.
+Press **F5** in VSCode to launch an Extension Development Host. The extension
+registers itself with VS Code automatically — no config files needed for the
+Claude Code VS Code extension. For CLI clients, run **MCP Hook: Write MCP config
+files for CLI clients** once from the Command Palette.
 
 Verify the server is running:
 

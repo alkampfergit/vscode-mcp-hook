@@ -4,17 +4,17 @@
   "description": "Per-window MCP server that terminals in this VSCode window can connect to.",
   "version": "0.0.1",
   "publisher": "you",
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "engines": { "vscode": "^1.99.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "vscode-mcp-hook.server",
+        "label": "VSCode MCP Hook"
+      }
+    ],
     "commands": [
       {
         "command": "vscodeMcpHook.showInfo",
@@ -22,7 +22,7 @@
       },
       {
         "command": "vscodeMcpHook.writeWorkspaceConfig",
-        "title": "MCP Hook: Write .vscode/mcp.json for this workspace"
+        "title": "MCP Hook: Write MCP config files for CLI clients"
       }
     ]
   },

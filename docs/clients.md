@@ -1,27 +1,12 @@
 # Wiring up clients
 
-No manual configuration is needed. When the extension activates it automatically
-creates the right config file for each client (skips if the file already exists).
-
 ## Claude Code VS Code extension
 
-Reads `.vscode/mcp.json`. The extension writes this file automatically:
+No configuration needed. The extension registers itself with VS Code via
+`vscode.lm.registerMcpServerDefinitionProvider`, so VS Code discovers it
+automatically on activation.
 
-```json
-{
-  "servers": {
-    "vscode-mcp-hook": {
-      "type": "http",
-      "url": "${env:VSCODE_MCP_URL}"
-    }
-  }
-}
-```
-
-`${env:VSCODE_MCP_URL}` is resolved from `process.env` inside the extension host,
-which vscode-mcp-hook populates on activation.
-
-Tools appear as `mcp__vscode-mcp-hook__<tool>` — for example:
+Tools appear as `mcp__vscode-mcp-hook__<tool>`:
 - `mcp__vscode-mcp-hook__get_active_file`
 - `mcp__vscode-mcp-hook__get_problems`
 - `mcp__vscode-mcp-hook__list_workspace_folders`
@@ -29,21 +14,35 @@ Tools appear as `mcp__vscode-mcp-hook__<tool>` — for example:
 
 ## Claude Code CLI (terminal)
 
-Reads `.mcp.json` at the workspace root. The extension writes this file automatically:
+The terminal already has `VSCODE_MCP_URL` injected via `EnvironmentVariableCollection`,
+but the CLI also needs a config file to know where to look.
 
+Run the command once per workspace:
+
+> **MCP Hook: Write MCP config files for CLI clients** (Command Palette)
+
+This writes two files using `${env:VSCODE_MCP_URL}` as the URL, so they stay
+valid across sessions even when the port changes:
+
+`.vscode/mcp.json` (Claude Code VS Code extension fallback / other tools):
 ```json
 {
-  "mcpServers": {
-    "vscode-mcp-hook": {
-      "type": "http",
-      "url": "${env:VSCODE_MCP_URL}"
-    }
+  "servers": {
+    "vscode-mcp-hook": { "type": "http", "url": "${env:VSCODE_MCP_URL}" }
   }
 }
 ```
 
-`${env:VSCODE_MCP_URL}` is resolved from the terminal environment, which
-vscode-mcp-hook injects via `EnvironmentVariableCollection` on activation.
+`.mcp.json` (Claude Code CLI):
+```json
+{
+  "mcpServers": {
+    "vscode-mcp-hook": { "type": "http", "url": "${VSCODE_MCP_URL}" }
+  }
+}
+```
+
+Both files should be added to `.gitignore`.
 
 ## Codex CLI
 
@@ -53,5 +52,4 @@ version; check `codex mcp --help`).
 
 ## Anything else
 
-Any MCP client that speaks Streamable HTTP and can expand env vars will work.
-Point it at `$VSCODE_MCP_URL`.
+Any MCP client that speaks Streamable HTTP can point at `$VSCODE_MCP_URL`.

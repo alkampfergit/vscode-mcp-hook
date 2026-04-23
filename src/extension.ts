@@ -24,8 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const mcp = buildMcpServer();
 
     // One transport, one session generator — the HTTP handler below
-    // routes every request through it. For heavier multi-session use you
-    // can create a transport per sessionId, but one is fine to start.
+    // routes every request through it.
     const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
     });
@@ -68,31 +67,39 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!addr || typeof addr === 'string') throw new Error('Failed to bind MCP server');
     serverUrl = `http://127.0.0.1:${addr.port}/mcp`;
 
-    // Inject into the extension host process so ${env:VSCODE_MCP_URL} in
-    // .vscode/mcp.json resolves correctly for extension-based MCP clients
-    // (e.g. the Claude Code extension) which run in-process, not in a terminal.
+    // Make the URL available to other extensions running in the same host
+    // (e.g. Claude Code extension) so ${env:VSCODE_MCP_URL} resolves correctly.
     process.env['VSCODE_MCP_URL'] = serverUrl;
 
     // Inject the URL into every terminal spawned by THIS window.
-    // persistent=false is critical: the port changes every session, and
-    // we don't want a stale value restored after reload.
+    // persistent=false: the port changes every session, no stale value on reload.
     const envCol = context.environmentVariableCollection;
     envCol.persistent = false;
-    envCol.description = `MCP server URL for this VSCode window`;
+    envCol.description = 'MCP server URL for this VSCode window';
     envCol.replace('VSCODE_MCP_URL', serverUrl);
 
+    // Register the MCP server with VS Code directly — no config files needed.
+    // VS Code calls provideMcpServerDefinitions() when it needs to connect.
+    const emitter = new vscode.EventEmitter<void>();
     context.subscriptions.push(
+        emitter,
+        vscode.lm.registerMcpServerDefinitionProvider('vscode-mcp-hook.server', {
+            onDidChangeMcpServerDefinitions: emitter.event,
+            provideMcpServerDefinitions() {
+                return [new vscode.McpHttpServerDefinition(
+                    'vscode-mcp-hook',
+                    vscode.Uri.parse(serverUrl!)
+                )];
+            },
+        }),
         vscode.commands.registerCommand('vscodeMcpHook.showInfo', () => {
             vscode.window.showInformationMessage(`MCP server: ${serverUrl}`);
         }),
         vscode.commands.registerCommand('vscodeMcpHook.writeWorkspaceConfig', async () => {
-            await writeWorkspaceMcpConfig();
+            await writeCliMcpConfig();
+            vscode.window.showInformationMessage('MCP config files written.');
         })
     );
-
-    // Auto-write a .vscode/mcp.json if the workspace doesn't have one yet.
-    // Uses ${VSCODE_MCP_URL} so the file is stable across sessions.
-    await writeWorkspaceMcpConfig({ skipIfExists: true });
 
     console.log(`[vscode-mcp-hook] listening on ${serverUrl}`);
 }
@@ -103,8 +110,6 @@ function buildMcpServer(): McpServer {
         version: '0.0.1',
     });
 
-    // Example tool: return the file focused in THIS window.
-    // This is the whole point — scoping context to the window the CLI is in.
     server.registerTool(
         'get_active_file',
         {
@@ -113,8 +118,6 @@ function buildMcpServer(): McpServer {
             inputSchema: {},
         },
         async () => {
-            // Prefer the live value; fall back to lastActiveFile when the
-            // terminal has focus and activeTextEditor is undefined.
             const file =
                 vscode.window.activeTextEditor?.document.uri.fsPath ??
                 lastActiveFile ??
@@ -180,43 +183,26 @@ function buildMcpServer(): McpServer {
     return server;
 }
 
-async function writeWorkspaceMcpConfig(opts: { skipIfExists?: boolean } = {}) {
+// Writes .vscode/mcp.json and .mcp.json for CLI-based MCP clients (e.g. Claude
+// Code CLI). Only needed if you use a CLI client in the integrated terminal —
+// run via the "MCP Hook: Write MCP config files for CLI clients" command.
+async function writeCliMcpConfig() {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) return;
     const root = folder.uri.fsPath;
 
-    // .vscode/mcp.json — read by the Claude Code VS Code extension
-    await writeJsonIfNeeded(
-        path.join(root, '.vscode', 'mcp.json'),
-        {
-            servers: {
-                'vscode-mcp-hook': { type: 'http', url: '${env:VSCODE_MCP_URL}' },
-            },
-        },
-        opts.skipIfExists
+    const vscodeDir = path.join(root, '.vscode');
+    await fs.mkdir(vscodeDir, { recursive: true });
+    await fs.writeFile(
+        path.join(vscodeDir, 'mcp.json'),
+        JSON.stringify({ servers: { 'vscode-mcp-hook': { type: 'http', url: '${env:VSCODE_MCP_URL}' } } }, null, 2) + '\n',
+        'utf8'
     );
-
-    // .mcp.json — read by the Claude Code CLI
-    await writeJsonIfNeeded(
+    await fs.writeFile(
         path.join(root, '.mcp.json'),
-        {
-            mcpServers: {
-                'vscode-mcp-hook': { type: 'http', url: '${env:VSCODE_MCP_URL}' },
-            },
-        },
-        opts.skipIfExists
+        JSON.stringify({ mcpServers: { 'vscode-mcp-hook': { type: 'http', url: '${VSCODE_MCP_URL}' } } }, null, 2) + '\n',
+        'utf8'
     );
-}
-
-async function writeJsonIfNeeded(file: string, content: unknown, skipIfExists?: boolean) {
-    if (skipIfExists) {
-        try {
-            await fs.access(file);
-            return;
-        } catch { /* fall through */ }
-    }
-    await fs.mkdir(path.dirname(file), { recursive: true });
-    await fs.writeFile(file, JSON.stringify(content, null, 2) + '\n', 'utf8');
 }
 
 export async function deactivate() {
