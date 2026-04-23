@@ -1,0 +1,13 @@
+.gitignore
+.tokensave/**
+.claude/**
+.github/**
+node_modules/**
+src/**
+tests/**
+tsconfig.json
+jest.config.js
+eslint.config.js
+AGENTS.md
+CLAUDE.md
+**/*.map

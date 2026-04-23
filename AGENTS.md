@@ -10,6 +10,14 @@ All features are contained into backlog/Features folder. Features are ordered, e
 - Always try to write tests for each new piece of code so we have all code testable.
 - If you change the code outside the feature you are working on, always check the ./backlog/Features folder to understand if you need to update the feature reflecting the new changes
 
+## Definition of done — a task is NOT complete until all of these pass
+
+1. **Compile** — `npx tsc` exits with no errors
+2. **Tests** — `npx jest` shows 0 failing tests
+3. **Lint** — `npx eslint src tests --ext .ts` exits with no errors
+
+Run them in this order after every code change. Do not report a task as done if any of these steps fail.
+
 ## Feature layout 
 
 - backlog/featurelist.md: A list of all the features
