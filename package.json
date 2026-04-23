@@ -1,0 +1,37 @@
+{
+  "name": "vscode-mcp-host",
+  "displayName": "VSCode MCP Host",
+  "description": "Per-window MCP server that terminals in this VSCode window can connect to.",
+  "version": "0.0.1",
+  "publisher": "you",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscodeMcpHost.showInfo",
+        "title": "MCP Host: Show Connection Info"
+      },
+      {
+        "command": "vscodeMcpHost.writeWorkspaceConfig",
+        "title": "MCP Host: Write .vscode/mcp.json for this workspace"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.22.4"
+  }
+}
