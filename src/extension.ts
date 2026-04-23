@@ -68,6 +68,11 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!addr || typeof addr === 'string') throw new Error('Failed to bind MCP server');
     serverUrl = `http://127.0.0.1:${addr.port}/mcp`;
 
+    // Inject into the extension host process so ${env:VSCODE_MCP_URL} in
+    // .vscode/mcp.json resolves correctly for extension-based MCP clients
+    // (e.g. the Claude Code extension) which run in-process, not in a terminal.
+    process.env['VSCODE_MCP_URL'] = serverUrl;
+
     // Inject the URL into every terminal spawned by THIS window.
     // persistent=false is critical: the port changes every session, and
     // we don't want a stale value restored after reload.
@@ -77,10 +82,10 @@ export async function activate(context: vscode.ExtensionContext) {
     envCol.replace('VSCODE_MCP_URL', serverUrl);
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('vscodeMcpHost.showInfo', () => {
+        vscode.commands.registerCommand('vscodeMcpHook.showInfo', () => {
             vscode.window.showInformationMessage(`MCP server: ${serverUrl}`);
         }),
-        vscode.commands.registerCommand('vscodeMcpHost.writeWorkspaceConfig', async () => {
+        vscode.commands.registerCommand('vscodeMcpHook.writeWorkspaceConfig', async () => {
             await writeWorkspaceMcpConfig();
         })
     );
@@ -89,12 +94,12 @@ export async function activate(context: vscode.ExtensionContext) {
     // Uses ${VSCODE_MCP_URL} so the file is stable across sessions.
     await writeWorkspaceMcpConfig({ skipIfExists: true });
 
-    console.log(`[vscode-mcp-host] listening on ${serverUrl}`);
+    console.log(`[vscode-mcp-hook] listening on ${serverUrl}`);
 }
 
 function buildMcpServer(): McpServer {
     const server = new McpServer({
-        name: 'vscode-mcp-host',
+        name: 'vscode-mcp-hook',
         version: '0.0.1',
     });
 
@@ -178,29 +183,44 @@ function buildMcpServer(): McpServer {
 async function writeWorkspaceMcpConfig(opts: { skipIfExists?: boolean } = {}) {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) return;
-    const dir = path.join(folder.uri.fsPath, '.vscode');
-    const file = path.join(dir, 'mcp.json');
-    if (opts.skipIfExists) {
-        try {
-            await fs.access(file);
-            return; // already exists, leave it alone
-        } catch {
-            /* fall through */
-        }
-    }
-    await fs.mkdir(dir, { recursive: true });
-    const config = {
-        servers: {
-            'vscode-window': {
-                type: 'http',
-                url: '${env:VSCODE_MCP_URL}',
+    const root = folder.uri.fsPath;
+
+    // .vscode/mcp.json — read by the Claude Code VS Code extension
+    await writeJsonIfNeeded(
+        path.join(root, '.vscode', 'mcp.json'),
+        {
+            servers: {
+                'vscode-mcp-hook': { type: 'http', url: '${env:VSCODE_MCP_URL}' },
             },
         },
-    };
-    await fs.writeFile(file, JSON.stringify(config, null, 2) + '\n', 'utf8');
+        opts.skipIfExists
+    );
+
+    // .mcp.json — read by the Claude Code CLI
+    await writeJsonIfNeeded(
+        path.join(root, '.mcp.json'),
+        {
+            mcpServers: {
+                'vscode-mcp-hook': { type: 'http', url: '${env:VSCODE_MCP_URL}' },
+            },
+        },
+        opts.skipIfExists
+    );
+}
+
+async function writeJsonIfNeeded(file: string, content: unknown, skipIfExists?: boolean) {
+    if (skipIfExists) {
+        try {
+            await fs.access(file);
+            return;
+        } catch { /* fall through */ }
+    }
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, JSON.stringify(content, null, 2) + '\n', 'utf8');
 }
 
 export async function deactivate() {
+    delete process.env['VSCODE_MCP_URL'];
     await new Promise<void>((resolve) => {
         if (!httpServer) return resolve();
         httpServer.close(() => resolve());

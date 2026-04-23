@@ -1,0 +1,1 @@
+Follow rules in @AGENTS.md all rules are there.

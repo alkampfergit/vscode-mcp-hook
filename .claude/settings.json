@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npm audit *)",
+      "Bash(rtk tsc *)",
+      "Bash(node -e \"const p=require\\('./node_modules/typescript/package.json'\\); console.log\\('ts:',p.version\\)\")",
+      "Bash(node -e \"const p=require\\('./node_modules/@types/node/package.json'\\); console.log\\('@types/node:',p.version\\)\")",
+      "Bash(npm run *)",
+      "Bash(npm install *)"
     ]
   }
 }
