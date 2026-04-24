@@ -22,6 +22,15 @@ Each window's extension host starts its own HTTP MCP server on a random
 loopback port. `EnvironmentVariableCollection` injects `VSCODE_MCP_URL` into
 *that window's* terminals, scoping discovery correctly. No cross-window leakage.
 
+## Tools
+
+| Tool | Description | Docs |
+|---|---|---|
+| `get_active_file` | Path of the file currently focused in this window | [→](docs/tools/get_active_file.md) |
+| `get_problems` | VS Code diagnostics, optionally filtered by file path | [→](docs/tools/get_problems.md) |
+| `list_workspace_folders` | Workspace folders open in this window | [→](docs/tools/list_workspace_folders.md) |
+| `show_message` | Pop an information notification in this window | [→](docs/tools/show_message.md) |
+
 ## Build & run
 
 ```bash
@@ -45,8 +54,20 @@ curl -s -X POST "$VSCODE_MCP_URL" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
 ```
 
+## Adding or modifying tools
+
+Use the `mcp-tool` skill — it enforces the harness pattern, generates all required
+files, and runs the definition of done checks:
+
+```
+/mcp-tool add <snake_case_name>
+/mcp-tool remove <snake_case_name>
+/mcp-tool modify <snake_case_name>
+```
+
 ## Further reading
 
 - [Wiring up clients](docs/clients.md) — Claude Code, Codex CLI, and generic MCP clients
-- [Extending](docs/extending.md) — adding new tools
+- [Extending](docs/extending.md) — adding new tools and the harness layer map
+- [Harness engineering](docs/harness.md) — architectural decisions and rationale
 - [Notes & gotchas](docs/notes.md) — env var timing, security, multi-root

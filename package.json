@@ -38,6 +38,7 @@
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "package": "vsce package --allow-missing-repository --baseContentUrl https://github.com/placeholder/vscode-mcp-hook",
+    "package:local": "pwsh ./scripts/build-package.ps1",
     "build": "npm run lint && npm run compile && npm run package",
     "vscode:prepublish": "npm run compile"
   },
@@ -47,7 +48,7 @@
     "@types/vscode": "^1.116.0",
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
-    "@vscode/vsce": "^3.9.1",
+    "@vscode/vsce": "^2.25.0",
     "eslint": "^10.2.1",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
