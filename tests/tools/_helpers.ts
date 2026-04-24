@@ -22,7 +22,7 @@ export function makeMockServer(): { server: McpServer; calls: ToolCall[] } {
 
 export function makeMockTools(overrides: Partial<McpTools> = {}): McpTools {
     return {
-        getProblems: jest.fn((_file?: string) => '(no problems)'),
+        getProblems: jest.fn((_file?: string, _scope?: 'git') => Promise.resolve('(no problems)')),
         ...overrides,
     } as unknown as McpTools;
 }
