@@ -4,7 +4,7 @@ import { type VscodeAdapter, type DiagnosticItem } from '../../src/adapters/vsco
 function makeAdapter(overrides: Partial<VscodeAdapter> = {}): VscodeAdapter {
     return {
         getDiagnostics: () => [],
-        getGitModifiedFiles: () => null,
+        getGitModifiedFiles: async () => null,
         ensureFilesLoaded: async () => undefined,
         ...overrides,
     };
@@ -61,7 +61,7 @@ describe('McpTools.getProblems', () => {
     });
 
     it('returns git-unavailable sentinel when scope=git and no git integration', async () => {
-        const tools = new McpTools(makeAdapter({ getDiagnostics: () => diags, getGitModifiedFiles: () => null }));
+        const tools = new McpTools(makeAdapter({ getDiagnostics: () => diags, getGitModifiedFiles: async () => null }));
         expect(await tools.getProblems(undefined, 'git')).toBe('(git integration not available)');
     });
 
@@ -69,7 +69,7 @@ describe('McpTools.getProblems', () => {
         const tools = new McpTools(
             makeAdapter({
                 getDiagnostics: () => diags,
-                getGitModifiedFiles: () => ['/foo/bar.ts'],
+                getGitModifiedFiles: async () => ['/foo/bar.ts'],
             }),
         );
         const result = await tools.getProblems(undefined, 'git');
@@ -77,11 +77,55 @@ describe('McpTools.getProblems', () => {
         expect(result).not.toContain('baz.ts');
     });
 
+    it('matches git-scoped diagnostics when Windows path casing differs', async () => {
+        const tools = new McpTools(
+            makeAdapter({
+                getDiagnostics: () => [
+                    {
+                        filePath: 'A:\\Develop\\github\\azdo-cli\\src\\types\\credential.ts',
+                        severity: 'Error',
+                        line: 7,
+                        character: 11,
+                        message: 'Type mismatch',
+                        source: 'ts',
+                    },
+                ],
+                getGitModifiedFiles: async () => ['a:/Develop/github/azdo-cli/src/types/credential.ts'],
+            }),
+        );
+
+        const result = await tools.getProblems(undefined, 'git');
+
+        expect(result).toContain('credential.ts:7:11');
+        expect(result).toContain('Type mismatch');
+    });
+
+    it('matches file filters across Windows slash and casing differences', async () => {
+        const tools = new McpTools(
+            makeAdapter({
+                getDiagnostics: () => [
+                    {
+                        filePath: 'A:\\Develop\\github\\azdo-cli\\src\\types\\credential.ts',
+                        severity: 'Error',
+                        line: 7,
+                        character: 11,
+                        message: 'Type mismatch',
+                        source: 'ts',
+                    },
+                ],
+            }),
+        );
+
+        const result = await tools.getProblems('src/types/CREDENTIAL.ts');
+
+        expect(result).toContain('credential.ts:7:11');
+    });
+
     it('combines file filter and git scope', async () => {
         const tools = new McpTools(
             makeAdapter({
                 getDiagnostics: () => diags,
-                getGitModifiedFiles: () => ['/foo/bar.ts', '/foo/baz.ts'],
+                getGitModifiedFiles: async () => ['/foo/bar.ts', '/foo/baz.ts'],
             }),
         );
         const result = await tools.getProblems('bar.ts', 'git');
@@ -93,10 +137,44 @@ describe('McpTools.getProblems', () => {
         const tools = new McpTools(
             makeAdapter({
                 getDiagnostics: () => diags,
-                getGitModifiedFiles: () => null,
+                getGitModifiedFiles: async () => null,
             }),
         );
         expect(await tools.getProblems(undefined, 'git')).toBe('(git integration not available)');
+    });
+
+    it('preloads git-modified files even when scope is omitted', async () => {
+        const ensureFilesLoaded = jest.fn(() => Promise.resolve());
+        const tools = new McpTools(
+            makeAdapter({
+                getDiagnostics: () => diags,
+                getGitModifiedFiles: async () => ['/foo/bar.ts'],
+                ensureFilesLoaded,
+            }),
+        );
+
+        const result = await tools.getProblems();
+
+        expect(ensureFilesLoaded).toHaveBeenCalledWith(['/foo/bar.ts']);
+        expect(result).toContain('bar.ts');
+        expect(result).toContain('baz.ts');
+    });
+
+    it('continues without preloading when git is unavailable and scope is omitted', async () => {
+        const ensureFilesLoaded = jest.fn(() => Promise.resolve());
+        const tools = new McpTools(
+            makeAdapter({
+                getDiagnostics: () => diags,
+                getGitModifiedFiles: async () => null,
+                ensureFilesLoaded,
+            }),
+        );
+
+        const result = await tools.getProblems();
+
+        expect(ensureFilesLoaded).not.toHaveBeenCalled();
+        expect(result).toContain('bar.ts');
+        expect(result).toContain('baz.ts');
     });
 
     it('logs git path loading, diagnostic presence, and filter decisions', async () => {
@@ -104,7 +182,7 @@ describe('McpTools.getProblems', () => {
         const tools = new McpTools(
             makeAdapter({
                 getDiagnostics: () => diags,
-                getGitModifiedFiles: () => ['/foo/bar.ts', '/foo/missing.ts'],
+                getGitModifiedFiles: async () => ['/foo/bar.ts', '/foo/missing.ts'],
             }),
             logger,
         );
