@@ -10,7 +10,7 @@ export function register(server: McpServer, tools: McpTools): void {
         {
             title: 'Get Problems',
             description:
-                'Returns all diagnostics (errors, warnings, hints) shown in the VS Code Problems panel, optionally filtered to a specific file path.',
+                'Returns errors and warnings shown in the VS Code Problems panel, optionally filtered to a specific file path. Hints and informational diagnostics are excluded.',
             inputSchema: { file: z.string().optional() },
         },
         async ({ file }) => ({ content: [{ type: 'text' as const, text: tools.getProblems(file) }] }),

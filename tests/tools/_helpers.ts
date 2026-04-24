@@ -22,11 +22,7 @@ export function makeMockServer(): { server: McpServer; calls: ToolCall[] } {
 
 export function makeMockTools(overrides: Partial<McpTools> = {}): McpTools {
     return {
-        getActiveFile: jest.fn(() => '/path/to/file.ts'),
         getProblems: jest.fn((_file?: string) => '(no problems)'),
-        listWorkspaceFolders: jest.fn(() => '(no workspace folders)'),
-        showMessage: jest.fn(),
-        updateLastActiveFile: jest.fn(),
         ...overrides,
     } as unknown as McpTools;
 }

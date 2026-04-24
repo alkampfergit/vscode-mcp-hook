@@ -10,19 +10,11 @@ export interface DiagnosticItem {
 }
 
 export interface VscodeAdapter {
-    getActiveFilePath(): string | undefined;
     getDiagnostics(): DiagnosticItem[];
-    getWorkspaceFolderPaths(): string[];
-    showInformationMessage(message: string): void;
-    getFirstWorkspaceRoot(): string | undefined;
 }
 
 export class LiveVscodeAdapter implements VscodeAdapter {
     private static readonly severityLabel = ['Error', 'Warning', 'Information', 'Hint'];
-
-    getActiveFilePath(): string | undefined {
-        return vscode.window.activeTextEditor?.document.uri.fsPath;
-    }
 
     getDiagnostics(): DiagnosticItem[] {
         const items: DiagnosticItem[] = [];
@@ -39,17 +31,5 @@ export class LiveVscodeAdapter implements VscodeAdapter {
             }
         }
         return items;
-    }
-
-    getWorkspaceFolderPaths(): string[] {
-        return (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
-    }
-
-    showInformationMessage(message: string): void {
-        vscode.window.showInformationMessage(message);
-    }
-
-    getFirstWorkspaceRoot(): string | undefined {
-        return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     }
 }

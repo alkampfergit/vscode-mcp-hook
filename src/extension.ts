@@ -12,21 +12,19 @@ import { buildMcpServer, createTransport } from './server/mcpServer.js';
 let _httpServer: ReturnType<typeof createMcpHttpServer> | undefined;
 let serverUrl: string | undefined;
 
+function getFirstWorkspaceRoot(): string | undefined {
+    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     const adapter = new LiveVscodeAdapter();
-    const tools = new McpTools(adapter, adapter.getActiveFilePath());
-
-    context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor((editor) => {
-            if (editor) tools.updateLastActiveFile(editor.document.uri.fsPath);
-        }),
-    );
+    const tools = new McpTools(adapter);
 
     const transport = createTransport();
     const mcp = buildMcpServer(tools);
     await mcp.connect(transport);
 
-    const workspaceRoot = adapter.getFirstWorkspaceRoot();
+    const workspaceRoot = getFirstWorkspaceRoot();
     const configuredUrl = workspaceRoot ? await readConfiguredMcpServerUrl(workspaceRoot) : undefined;
     const configuredPort = configuredUrl ? readPortFromMcpServerUrl(configuredUrl) : undefined;
 
@@ -54,15 +52,12 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`MCP server: ${serverUrl}`);
         }),
         vscode.commands.registerCommand('vscodeMcpHook.writeWorkspaceConfig', async () => {
-            const root = adapter.getFirstWorkspaceRoot();
+            const root = getFirstWorkspaceRoot();
             if (root) await writeCliMcpConfig(root, serverUrl!);
             vscode.window.showInformationMessage('MCP config files written.');
         }),
     );
 
-    // Signal VS Code that MCP definitions are ready. Without this, extensions
-    // that started before us (e.g. Claude Code) won't re-query our provider
-    // and the server won't appear until the window is reloaded.
     emitter.fire();
 
     console.log(`[vscode-mcp-hook] listening on ${serverUrl}`);

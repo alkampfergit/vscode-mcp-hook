@@ -7,10 +7,7 @@ No configuration needed. The extension registers itself with VS Code via
 automatically on activation.
 
 Tools appear as `mcp__vscode-mcp-hook__<tool>`:
-- [`mcp__vscode-mcp-hook__get_active_file`](tools/get_active_file.md)
 - [`mcp__vscode-mcp-hook__get_problems`](tools/get_problems.md)
-- [`mcp__vscode-mcp-hook__list_workspace_folders`](tools/list_workspace_folders.md)
-- [`mcp__vscode-mcp-hook__show_message`](tools/show_message.md)
 
 ## Claude Code CLI (terminal)
 

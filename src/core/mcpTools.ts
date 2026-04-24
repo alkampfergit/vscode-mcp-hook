@@ -1,33 +1,16 @@
 import { type DiagnosticItem, type VscodeAdapter } from '../adapters/vscodeAdapter.js';
 
+const INCLUDED_SEVERITIES = new Set(['Error', 'Warning']);
+
 export class McpTools {
-    constructor(
-        private readonly vscode: VscodeAdapter,
-        private lastActiveFile: string | undefined,
-    ) {}
-
-    updateLastActiveFile(filePath: string): void {
-        this.lastActiveFile = filePath;
-    }
-
-    getActiveFile(): string {
-        const file = this.vscode.getActiveFilePath() ?? this.lastActiveFile;
-        return file ?? '(no active editor)';
-    }
+    constructor(private readonly vscode: VscodeAdapter) {}
 
     getProblems(file?: string): string {
         const items = this.vscode.getDiagnostics();
-        const filtered = file ? items.filter((d) => d.filePath.includes(file)) : items;
+        const filtered = items
+            .filter((d) => INCLUDED_SEVERITIES.has(d.severity))
+            .filter((d) => (file ? d.filePath.includes(file) : true));
         return formatDiagnostics(filtered);
-    }
-
-    listWorkspaceFolders(): string {
-        const paths = this.vscode.getWorkspaceFolderPaths();
-        return paths.length ? paths.join('\n') : '(no workspace folders)';
-    }
-
-    showMessage(message: string): void {
-        this.vscode.showInformationMessage(message);
     }
 }
 

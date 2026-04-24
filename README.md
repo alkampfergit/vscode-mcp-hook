@@ -26,10 +26,7 @@ loopback port. `EnvironmentVariableCollection` injects `VSCODE_MCP_URL` into
 
 | Tool | Description | Docs |
 |---|---|---|
-| `get_active_file` | Path of the file currently focused in this window | [→](docs/tools/get_active_file.md) |
-| `get_problems` | VS Code diagnostics, optionally filtered by file path | [→](docs/tools/get_problems.md) |
-| `list_workspace_folders` | Workspace folders open in this window | [→](docs/tools/list_workspace_folders.md) |
-| `show_message` | Pop an information notification in this window | [→](docs/tools/show_message.md) |
+| `get_problems` | Errors and warnings from the VS Code Problems panel, optionally filtered by file path | [→](docs/tools/get_problems.md) |
 
 ## Build & run
 
