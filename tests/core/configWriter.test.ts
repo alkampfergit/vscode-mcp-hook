@@ -21,13 +21,14 @@ describe('writeVscodeMcpConfig', () => {
         await fs.rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('writes .vscode/mcp.json with the actual server URL', async () => {
+    it('writes .vscode/mcp.json with the env variable reference and current URL comment', async () => {
         await writeVscodeMcpConfig(tmpDir, serverUrl);
         const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'));
-        expect(content.servers['vscode-mcp-hook']).toEqual({
+        expect(content.servers['vscode-mcp-hook']).toMatchObject({
             type: 'http',
-            url: serverUrl,
+            url: '${env:VSCODE_MCP_URL}',
         });
+        expect(content.servers['vscode-mcp-hook']._comment).toContain(`Current URL: ${serverUrl}.`);
     });
 
     it('is idempotent when called twice', async () => {
@@ -37,12 +38,13 @@ describe('writeVscodeMcpConfig', () => {
         expect(Object.keys(content.servers)).toHaveLength(1);
     });
 
-    it('updates an existing hook URL', async () => {
+    it('keeps the env reference and updates the current URL comment', async () => {
         await writeVscodeMcpConfig(tmpDir, 'http://127.0.0.1:11111/mcp');
         await writeVscodeMcpConfig(tmpDir, serverUrl);
 
         const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'));
-        expect(content.servers['vscode-mcp-hook'].url).toBe(serverUrl);
+        expect(content.servers['vscode-mcp-hook'].url).toBe('${env:VSCODE_MCP_URL}');
+        expect(content.servers['vscode-mcp-hook']._comment).toContain(`Current URL: ${serverUrl}.`);
     });
 
     it('preserves unrelated servers when writing .vscode/mcp.json', async () => {
@@ -57,7 +59,7 @@ describe('writeVscodeMcpConfig', () => {
 
         const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'));
         expect(content.servers.existing).toEqual({ type: 'http', url: 'http://127.0.0.1:1/mcp' });
-        expect(content.servers['vscode-mcp-hook'].url).toBe(serverUrl);
+        expect(content.servers['vscode-mcp-hook'].url).toBe('${env:VSCODE_MCP_URL}');
     });
 });
 
@@ -81,19 +83,21 @@ describe('writeCliMcpConfig', () => {
     it('writes .vscode/mcp.json with correct server entry', async () => {
         await writeCliMcpConfig(tmpDir, serverUrl);
         const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'));
-        expect(content.servers['vscode-mcp-hook']).toEqual({
+        expect(content.servers['vscode-mcp-hook']).toMatchObject({
             type: 'http',
-            url: serverUrl,
+            url: '${env:VSCODE_MCP_URL}',
         });
+        expect(content.servers['vscode-mcp-hook']._comment).toContain(`Current URL: ${serverUrl}.`);
     });
 
     it('writes .mcp.json with correct mcpServers entry', async () => {
         await writeCliMcpConfig(tmpDir, serverUrl);
         const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.mcp.json'), 'utf8'));
-        expect(content.mcpServers['vscode-mcp-hook']).toEqual({
+        expect(content.mcpServers['vscode-mcp-hook']).toMatchObject({
             type: 'http',
-            url: serverUrl,
+            url: '${VSCODE_MCP_URL}',
         });
+        expect(content.mcpServers['vscode-mcp-hook']._comment).toContain(`Current URL: ${serverUrl}.`);
     });
 
     it('is idempotent when called twice', async () => {
@@ -116,7 +120,12 @@ describe('readConfiguredMcpServerUrl', () => {
     });
 
     it('returns a literal URL from .vscode/mcp.json', async () => {
-        await writeVscodeMcpConfig(tmpDir, serverUrl);
+        await fs.mkdir(path.join(tmpDir, '.vscode'), { recursive: true });
+        await fs.writeFile(
+            path.join(tmpDir, '.vscode', 'mcp.json'),
+            JSON.stringify({ servers: { 'vscode-mcp-hook': { type: 'http', url: serverUrl } } }),
+            'utf8',
+        );
 
         await expect(readConfiguredMcpServerUrl(tmpDir)).resolves.toBe(serverUrl);
     });
@@ -140,6 +149,26 @@ describe('readConfiguredMcpServerUrl', () => {
         );
 
         await expect(readConfiguredMcpServerUrl(tmpDir)).resolves.toBe(serverUrl);
+    });
+
+    it('throws when .vscode/mcp.json and .mcp.json contain different literal ports', async () => {
+        await fs.mkdir(path.join(tmpDir, '.vscode'), { recursive: true });
+        await fs.writeFile(
+            path.join(tmpDir, '.vscode', 'mcp.json'),
+            JSON.stringify({ servers: { 'vscode-mcp-hook': { type: 'http', url: serverUrl } } }),
+            'utf8',
+        );
+        await fs.writeFile(
+            path.join(tmpDir, '.mcp.json'),
+            JSON.stringify({
+                mcpServers: { 'vscode-mcp-hook': { type: 'http', url: 'http://127.0.0.1:31338/mcp' } },
+            }),
+            'utf8',
+        );
+
+        await expect(readConfiguredMcpServerUrl(tmpDir)).rejects.toThrow(
+            'Conflicting vscode-mcp-hook ports found in .vscode/mcp.json and .mcp.json',
+        );
     });
 });
 

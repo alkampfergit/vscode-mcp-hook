@@ -1,3 +1,8 @@
+---
+name: mcp-tool
+description: Add, modify, or remove MCP tools in the vscode-mcp-hook extension following the harness engineering pattern. Use when the user asks to add a new MCP tool, remove an existing one, or modify a tool's schema, handler, or documentation.
+---
+
 # mcp-tool
 
 Add, modify, or remove MCP tools in the vscode-mcp-hook extension following the harness engineering pattern.

@@ -2,6 +2,8 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 export const SERVER_NAME = 'vscode-mcp-hook';
+const VSCODE_ENV_URL = '${env:VSCODE_MCP_URL}';
+const CLI_ENV_URL = '${VSCODE_MCP_URL}';
 
 type JsonObject = Record<string, unknown>;
 
@@ -35,7 +37,20 @@ async function readExistingJsonObject(filePath: string): Promise<JsonObject | un
     }
 }
 
-function upsertServer(config: JsonObject, serverKey: ConfigLocation['serverKey'], serverUrl: string): JsonObject {
+function buildCurrentUrlComment(currentServerUrl: string): string {
+    return [
+        `Current URL: ${currentServerUrl}.`,
+        'Keep the url field as the environment variable for the current VS Code window.',
+        'To pin the server port, replace url with this literal URL in both .vscode/mcp.json and .mcp.json.',
+    ].join(' ');
+}
+
+function upsertServer(
+    config: JsonObject,
+    serverKey: ConfigLocation['serverKey'],
+    configUrl: string,
+    currentServerUrl: string,
+): JsonObject {
     const existingServers = isJsonObject(config[serverKey]) ? config[serverKey] : {};
     const existingServer = isJsonObject(existingServers[SERVER_NAME]) ? existingServers[SERVER_NAME] : {};
 
@@ -46,17 +61,18 @@ function upsertServer(config: JsonObject, serverKey: ConfigLocation['serverKey']
             [SERVER_NAME]: {
                 ...existingServer,
                 type: 'http',
-                url: serverUrl,
+                url: configUrl,
+                _comment: buildCurrentUrlComment(currentServerUrl),
             },
         },
     };
 }
 
-async function writeMcpConfigFile(location: ConfigLocation, serverUrl: string): Promise<void> {
+async function writeMcpConfigFile(location: ConfigLocation, configUrl: string, currentServerUrl: string): Promise<void> {
     const config = await readJsonObject(location.filePath);
     await fs.writeFile(
         location.filePath,
-        JSON.stringify(upsertServer(config, location.serverKey, serverUrl), null, 2) + '\n',
+        JSON.stringify(upsertServer(config, location.serverKey, configUrl, currentServerUrl), null, 2) + '\n',
         'utf8',
     );
 }
@@ -84,15 +100,22 @@ function getConfigLocations(rootPath: string): ConfigLocation[] {
 }
 
 export async function readConfiguredMcpServerUrl(rootPath: string): Promise<string | undefined> {
+    const literalUrls: string[] = [];
+
     for (const location of getConfigLocations(rootPath)) {
         const config = await readExistingJsonObject(location.filePath);
         if (!config) continue;
 
         const url = readServerUrl(config, location.serverKey);
-        if (url && isLiteralUrl(url)) return url;
+        if (url && isLiteralUrl(url)) literalUrls.push(url);
     }
 
-    return undefined;
+    const ports = new Set(literalUrls.map(readPortFromMcpServerUrl).filter((port): port is number => port !== undefined));
+    if (ports.size > 1) {
+        throw new Error('Conflicting vscode-mcp-hook ports found in .vscode/mcp.json and .mcp.json');
+    }
+
+    return literalUrls[0];
 }
 
 export function readPortFromMcpServerUrl(serverUrl: string): number | undefined {
@@ -106,16 +129,28 @@ export function readPortFromMcpServerUrl(serverUrl: string): number | undefined 
     }
 }
 
-export async function writeVscodeMcpConfig(rootPath: string, serverUrl: string): Promise<void> {
+export async function writeVscodeMcpConfig(rootPath: string, currentServerUrl: string): Promise<void> {
     const vscodeDir = path.join(rootPath, '.vscode');
     await fs.mkdir(vscodeDir, { recursive: true });
-    await writeMcpConfigFile({ filePath: path.join(vscodeDir, 'mcp.json'), serverKey: 'servers' }, serverUrl);
+    await writeMcpConfigFile(
+        { filePath: path.join(vscodeDir, 'mcp.json'), serverKey: 'servers' },
+        VSCODE_ENV_URL,
+        currentServerUrl,
+    );
 }
 
-export async function writeCliMcpConfig(rootPath: string, serverUrl: string): Promise<void> {
+export async function writeCliMcpConfig(rootPath: string, currentServerUrl: string): Promise<void> {
     const vscodeDir = path.join(rootPath, '.vscode');
     await fs.mkdir(vscodeDir, { recursive: true });
 
-    await writeMcpConfigFile({ filePath: path.join(vscodeDir, 'mcp.json'), serverKey: 'servers' }, serverUrl);
-    await writeMcpConfigFile({ filePath: path.join(rootPath, '.mcp.json'), serverKey: 'mcpServers' }, serverUrl);
+    await writeMcpConfigFile(
+        { filePath: path.join(vscodeDir, 'mcp.json'), serverKey: 'servers' },
+        VSCODE_ENV_URL,
+        currentServerUrl,
+    );
+    await writeMcpConfigFile(
+        { filePath: path.join(rootPath, '.mcp.json'), serverKey: 'mcpServers' },
+        CLI_ENV_URL,
+        currentServerUrl,
+    );
 }
