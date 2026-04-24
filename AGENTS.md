@@ -24,6 +24,24 @@ Run them in this order after every code change. Do not report a task as done if 
 - backlog/Features: Contains all features, one directory for each feature, with the number of the feature as first part of directory names
 - backlog/Features/X. Feature name: Contains task files that implement that features, ordered by the number at the beginning of the file name
 
+## MCP documentation rules
+
+Every MCP tool exposed by this extension must be documented. Documentation lives in the `docs/` folder as markdown files.
+
+When you add, remove, or change an MCP tool you must:
+
+- Document the tool in the appropriate `docs/` file (create a new file if no suitable one exists).
+- Each tool entry must include:
+  - **Name** — the tool identifier as registered with `server.registerTool`
+  - **Description** — what the tool does in plain language
+  - **Input schema** — every input parameter, its type, whether it is required or optional, and what it means
+  - **Return value** — what the tool returns and in what format
+  - **Example** — at least one concrete request/response pair showing the tool in use
+- If a tool has behavioral quirks, edge cases, or known limitations, document them explicitly.
+- Keep `docs/clients.md` up to date if the new tool changes how clients should connect or discover the server.
+
+The definition of done (compile + tests + lint) is not satisfied until the documentation has also been updated.
+
 ## Implementation rules
 
 When you are asked to implement a feature you must follow these rules:

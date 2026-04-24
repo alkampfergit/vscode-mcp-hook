@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { LiveVscodeAdapter } from './adapters/vscodeAdapter.js';
 import { McpTools } from './core/mcpTools.js';
-import { writeCliMcpConfig } from './core/configWriter.js';
+import { writeCliMcpConfig, writeVscodeMcpConfig } from './core/configWriter.js';
 import { createMcpHttpServer, startHttpServer, stopHttpServer } from './server/httpServer.js';
 import { buildMcpServer, createTransport } from './server/mcpServer.js';
 
@@ -28,6 +28,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     process.env['VSCODE_MCP_URL'] = serverUrl;
 
+    const workspaceRoot = adapter.getFirstWorkspaceRoot();
+    if (workspaceRoot) await writeVscodeMcpConfig(workspaceRoot, serverUrl);
+
     const envCol = context.environmentVariableCollection;
     envCol.persistent = false;
     envCol.description = 'MCP server URL for this VSCode window';
@@ -51,6 +54,11 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('MCP config files written.');
         }),
     );
+
+    // Signal VS Code that MCP definitions are ready. Without this, extensions
+    // that started before us (e.g. Claude Code) won't re-query our provider
+    // and the server won't appear until the window is reloaded.
+    emitter.fire();
 
     console.log(`[vscode-mcp-hook] listening on ${serverUrl}`);
 }

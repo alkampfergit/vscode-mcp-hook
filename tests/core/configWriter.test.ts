@@ -1,7 +1,35 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { writeCliMcpConfig } from '../../src/core/configWriter.js';
+import { writeCliMcpConfig, writeVscodeMcpConfig } from '../../src/core/configWriter.js';
+
+describe('writeVscodeMcpConfig', () => {
+    let tmpDir: string;
+
+    beforeEach(async () => {
+        tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mcp-test-'));
+    });
+
+    afterEach(async () => {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('writes .vscode/mcp.json with the actual server URL', async () => {
+        await writeVscodeMcpConfig(tmpDir, 'http://127.0.0.1:12345/mcp');
+        const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'));
+        expect(content.servers['vscode-mcp-hook']).toEqual({
+            type: 'http',
+            url: 'http://127.0.0.1:12345/mcp',
+        });
+    });
+
+    it('overwrites an existing .vscode/mcp.json with the new URL', async () => {
+        await writeVscodeMcpConfig(tmpDir, 'http://127.0.0.1:11111/mcp');
+        await writeVscodeMcpConfig(tmpDir, 'http://127.0.0.1:22222/mcp');
+        const content = JSON.parse(await fs.readFile(path.join(tmpDir, '.vscode', 'mcp.json'), 'utf8'));
+        expect(content.servers['vscode-mcp-hook'].url).toBe('http://127.0.0.1:22222/mcp');
+    });
+});
 
 describe('writeCliMcpConfig', () => {
     let tmpDir: string;
