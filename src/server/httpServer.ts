@@ -31,10 +31,10 @@ export function createMcpHttpServer(handler: RequestHandler): http.Server {
     });
 }
 
-export function startHttpServer(server: http.Server): Promise<number> {
+export function startHttpServer(server: http.Server, port = 0): Promise<number> {
     return new Promise((resolve, reject) => {
         server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => {
+        server.listen(port, '127.0.0.1', () => {
             const addr = server.address();
             if (!addr || typeof addr === 'string') {
                 reject(new Error('Failed to bind MCP server'));

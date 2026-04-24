@@ -25,6 +25,22 @@ describe('createMcpHttpServer + startHttpServer', () => {
         expect(port).toBeGreaterThan(0);
     });
 
+    it('starts on a requested port', async () => {
+        const requestedPort = await new Promise<number>((resolve) => {
+            const probe = http.createServer();
+            probe.listen(0, '127.0.0.1', () => {
+                const addr = probe.address();
+                probe.close(() => resolve(typeof addr === 'object' && addr ? addr.port : 0));
+            });
+        });
+        const handler = { handleRequest: jest.fn().mockResolvedValue(undefined) };
+        server = createMcpHttpServer(handler);
+
+        const port = await startHttpServer(server, requestedPort);
+
+        expect(port).toBe(requestedPort);
+    });
+
     it('routes GET requests to the handler', async () => {
         const handler = {
             handleRequest: jest.fn().mockImplementation((_req, res: http.ServerResponse) => {

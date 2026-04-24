@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import { LiveVscodeAdapter } from './adapters/vscodeAdapter.js';
 import { McpTools } from './core/mcpTools.js';
-import { writeCliMcpConfig, writeVscodeMcpConfig } from './core/configWriter.js';
+import {
+    readConfiguredMcpServerUrl,
+    readPortFromMcpServerUrl,
+    writeCliMcpConfig,
+} from './core/configWriter.js';
 import { createMcpHttpServer, startHttpServer, stopHttpServer } from './server/httpServer.js';
 import { buildMcpServer, createTransport } from './server/mcpServer.js';
 
@@ -22,14 +26,15 @@ export async function activate(context: vscode.ExtensionContext) {
     const mcp = buildMcpServer(tools);
     await mcp.connect(transport);
 
+    const workspaceRoot = adapter.getFirstWorkspaceRoot();
+    const configuredUrl = workspaceRoot ? await readConfiguredMcpServerUrl(workspaceRoot) : undefined;
+    const configuredPort = configuredUrl ? readPortFromMcpServerUrl(configuredUrl) : undefined;
+
     _httpServer = createMcpHttpServer(transport);
-    const port = await startHttpServer(_httpServer);
+    const port = await startHttpServer(_httpServer, configuredPort);
     serverUrl = `http://127.0.0.1:${port}/mcp`;
 
     process.env['VSCODE_MCP_URL'] = serverUrl;
-
-    const workspaceRoot = adapter.getFirstWorkspaceRoot();
-    if (workspaceRoot) await writeVscodeMcpConfig(workspaceRoot, serverUrl);
 
     const envCol = context.environmentVariableCollection;
     envCol.persistent = false;
@@ -50,7 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('vscodeMcpHook.writeWorkspaceConfig', async () => {
             const root = adapter.getFirstWorkspaceRoot();
-            if (root) await writeCliMcpConfig(root);
+            if (root) await writeCliMcpConfig(root, serverUrl!);
             vscode.window.showInformationMessage('MCP config files written.');
         }),
     );
