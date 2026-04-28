@@ -51,6 +51,37 @@ curl -s -X POST "$VSCODE_MCP_URL" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
 ```
 
+## Packaging a local `.vsix`
+
+To produce a `.vsix` file you can install directly in any VS Code instance:
+
+```bash
+# Install dependencies (once)
+npm install
+
+# Lint + compile + package in one step — output goes to dist/
+npm run package:local
+```
+
+The script (`scripts/build-package.ps1`) runs lint, compiles TypeScript, then
+calls `vsce package` and writes the `.vsix` into the `dist/` folder.
+
+Alternatively, run the steps individually:
+
+```bash
+npm run lint        # ESLint
+npm run compile     # tsc
+npx vsce package    # produces vscode-mcp-hook-<version>.vsix
+```
+
+Install the resulting file:
+
+```bash
+code --install-extension dist/vscode-mcp-hook-*.vsix
+```
+
+Or via the VS Code UI: **Extensions → ··· → Install from VSIX…**
+
 ## Adding or modifying tools
 
 Use the `mcp-tool` skill — it enforces the harness pattern, generates all required
