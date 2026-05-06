@@ -51,11 +51,11 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: '*.vsix'
+          subject-path: 'dist/*.vsix'
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
           name: extension-vsix
-          path: '*.vsix'
+          path: 'dist/*.vsix'
           if-no-files-found: error
