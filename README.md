@@ -24,9 +24,9 @@ loopback port. `EnvironmentVariableCollection` injects `VSCODE_MCP_URL` into
 
 ## Tools
 
-| Tool | Description | Docs | Name |
-|---|---|---|---|
-| `get_problems` | Errors and warnings from the VS Code Problems panel, preloading git-modified files before reading diagnostics | [→](docs/tools/get_problems.md) | mcp__vscode-mcp-hook__get_problems  |
+| Tool | Description | Wiki | Technical docs | Name |
+|---|---|---|---|---|
+| `get_problems` | Errors and warnings from the VS Code Problems panel, preloading git-modified files before reading diagnostics | [→](wiki/get_problems.md) | [→](docs/tools/get_problems.md) | `mcp__vscode-mcp-hook__get_problems` |
 
 ## Build & run
 
@@ -92,6 +92,12 @@ files, and runs the definition of done checks:
 /mcp-tool remove <snake_case_name>
 /mcp-tool modify <snake_case_name>
 ```
+
+## Wiki (user-facing how-to guides)
+
+| Page | Summary |
+|---|---|
+| [get_problems](wiki/get_problems.md) | How to invoke the problems tool from Claude Code, curl, or an SDK client |
 
 ## Further reading
 

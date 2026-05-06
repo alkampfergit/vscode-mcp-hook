@@ -26,21 +26,45 @@ Run them in this order after every code change. Do not report a task as done if 
 
 ## MCP documentation rules
 
-Every MCP tool exposed by this extension must be documented. Documentation lives in the `docs/` folder as markdown files.
+Every MCP tool exposed by this extension must be documented in **two places**:
 
-When you add, remove, or change an MCP tool you must:
+### 1. Technical reference — `docs/tools/<tool_name>.md`
 
-- Document the tool in the appropriate `docs/` file (create a new file if no suitable one exists).
-- Each tool entry must include:
-  - **Name** — the tool identifier as registered with `server.registerTool`
-  - **Description** — what the tool does in plain language
-  - **Input schema** — every input parameter, its type, whether it is required or optional, and what it means
-  - **Return value** — what the tool returns and in what format
-  - **Example** — at least one concrete request/response pair showing the tool in use
-- If a tool has behavioral quirks, edge cases, or known limitations, document them explicitly.
-- Keep `docs/clients.md` up to date if the new tool changes how clients should connect or discover the server.
+Created/updated for every tool add, change, or removal. Must include:
 
-The definition of done (compile + tests + lint) is not satisfied until the documentation has also been updated.
+- **Name** — the tool identifier as registered with `server.registerTool`
+- **Description** — what the tool does in plain language
+- **Input schema** — every parameter, its type, whether required or optional, and what it means
+- **Return value** — what the tool returns and in what format
+- **Example** — at least one concrete request/response pair
+- Any behavioral quirks, edge cases, or known limitations
+
+Keep `docs/clients.md` up to date if the change affects how clients connect or discover the server.
+
+### 2. Wiki how-to — `wiki/<tool_name>.md`
+
+Created/updated alongside the technical reference. The wiki page is user-facing
+and must explain **how to invoke** the tool. It must include:
+
+- The full MCP tool identifier (`mcp__vscode-mcp-hook__<name>`)
+- How to call it from Claude Code (natural-language prompts that trigger it)
+- How to call it via raw HTTP / curl with at least one concrete `curl` example per parameter combination
+- How to call it from a TypeScript/JS MCP SDK client
+- The response format with a sample output
+- Practical tips (filters, edge cases the user will hit)
+- A link back to the technical reference in `docs/tools/<tool_name>.md`
+
+### 3. README tools table
+
+When a tool is added or removed, update the **Tools** table in `README.md`:
+
+- Add a row with the tool name, a one-line description, a link to `wiki/<tool_name>.md`, and a link to `docs/tools/<tool_name>.md`.
+- Remove the row when the tool is deleted.
+- Keep the **Wiki** section table in `README.md` in sync (one row per wiki page).
+
+The definition of done (compile + tests + lint) is not satisfied until both the
+technical reference and the wiki page have been created or updated, and the
+README tables reflect the current tool set.
 
 ## Implementation rules
 
