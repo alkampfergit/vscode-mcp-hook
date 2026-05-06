@@ -24,9 +24,9 @@ loopback port. `EnvironmentVariableCollection` injects `VSCODE_MCP_URL` into
 
 ## Tools
 
-| Tool | Description | Docs |
-|---|---|---|
-| `get_problems` | Errors and warnings from the VS Code Problems panel, preloading git-modified files before reading diagnostics | [→](docs/tools/get_problems.md) |
+| Tool | Description | Docs | Name |
+|---|---|---|---|
+| `get_problems` | Errors and warnings from the VS Code Problems panel, preloading git-modified files before reading diagnostics | [→](docs/tools/get_problems.md) | mcp__vscode-mcp-hook__get_problems  |
 
 ## Build & run
 

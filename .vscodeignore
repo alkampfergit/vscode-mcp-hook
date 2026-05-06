@@ -5,6 +5,7 @@
 node_modules/**
 src/**
 tests/**
+out/**
 tsconfig.json
 jest.config.js
 eslint.config.js

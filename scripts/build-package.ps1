@@ -14,6 +14,7 @@ try {
 
     npm run lint
     npm run compile
+    npm run bundle
     npx vsce package `
         --allow-missing-repository `
         --baseContentUrl https://github.com/placeholder/vscode-mcp-hook `

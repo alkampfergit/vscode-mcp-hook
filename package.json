@@ -2,7 +2,7 @@
   "name": "vscode-mcp-hook",
   "displayName": "VSCode MCP Hook",
   "description": "Per-window MCP server that terminals in this VSCode window can connect to.",
-  "version": "0.0.1",
+  "version": "0.1.3",
   "publisher": "you",
   "engines": {
     "vscode": "^1.116.0"
@@ -13,7 +13,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "mcpServerDefinitionProviders": [
       {
@@ -34,13 +34,14 @@
   },
   "scripts": {
     "lint": "eslint src tests --ext .ts",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -p ./ --noEmit",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "npm run bundle -- --watch",
     "test": "jest",
-    "package": "vsce package --allow-missing-repository --baseContentUrl https://github.com/placeholder/vscode-mcp-hook",
+    "package": "vsce package --allow-missing-repository --baseContentUrl https://github.com/placeholder/vscode-mcp-hook --out dist",
     "package:local": "pwsh ./scripts/build-package.ps1",
-    "build": "npm run lint && npm run compile && npm run package",
-    "vscode:prepublish": "npm run compile"
+    "build": "npm run lint && npm run compile && npm run bundle && npm run package",
+    "vscode:prepublish": "npm run bundle"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -48,7 +49,8 @@
     "@types/vscode": "^1.116.0",
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
-    "@vscode/vsce": "^2.25.0",
+    "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.28.0",
     "eslint": "^10.2.1",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
