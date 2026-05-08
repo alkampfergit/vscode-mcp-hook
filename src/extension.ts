@@ -7,7 +7,7 @@ import {
     writeCliMcpConfig,
 } from './core/configWriter.js';
 import { createMcpHttpServer, startHttpServer, stopHttpServer } from './server/httpServer.js';
-import { buildMcpServer, createTransport } from './server/mcpServer.js';
+import { createStatelessRequestHandler } from './server/mcpServer.js';
 import type { Logger } from './logger.js';
 
 let _httpServer: ReturnType<typeof createMcpHttpServer> | undefined;
@@ -59,13 +59,9 @@ export async function activate(context: vscode.ExtensionContext) {
         const tools = new McpTools(adapter, logger);
         logger.log('[extension] adapter and tools created');
 
-        logger.log('[extension] creating transport');
-        const transport = createTransport();
-        logger.log('[extension] building MCP server');
-        const mcp = buildMcpServer(tools);
-        logger.log('[extension] connecting MCP server to transport');
-        await mcp.connect(transport);
-        logger.log('[extension] MCP server connected to transport');
+        logger.log('[extension] building stateless MCP request handler');
+        const mcpHandler = createStatelessRequestHandler(tools, logger);
+        logger.log('[extension] MCP request handler ready (per-request server+transport)');
 
         const workspaceRoot = getFirstWorkspaceRoot();
         logger.log(`[extension] workspace root: ${workspaceRoot ?? '(none)'}`);
@@ -77,7 +73,7 @@ export async function activate(context: vscode.ExtensionContext) {
         logger.log(`[extension] preferred port: ${configuredPort ?? '(none, will pick random)'}`);
 
         logger.log('[extension] creating HTTP server');
-        _httpServer = createMcpHttpServer(transport);
+        _httpServer = createMcpHttpServer(mcpHandler);
         logger.log('[extension] starting HTTP server');
         const port = await startHttpServer(_httpServer, configuredPort);
         serverUrl = `http://127.0.0.1:${port}/mcp`;
