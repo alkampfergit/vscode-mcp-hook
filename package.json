@@ -2,7 +2,7 @@
   "name": "vscode-mcp-hook",
   "displayName": "VSCode MCP Hook",
   "description": "Per-window MCP server that terminals in this VSCode window can connect to.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "you",
   "engines": {
     "vscode": "^1.116.0"

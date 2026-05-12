@@ -60,9 +60,24 @@ export class LiveVscodeAdapter implements VscodeAdapter {
             this.logger.log('[adapter] getGitModifiedFiles: git API v1 not available');
             return null;
         }
-        const repos: unknown[] = api.repositories ?? [];
-        this.logger.log(`[adapter] getGitModifiedFiles: ${repos.length} repositories`);
+        const allRepos: unknown[] = api.repositories ?? [];
+        this.logger.log(`[adapter] getGitModifiedFiles: ${allRepos.length} total repositories`);
+        if (allRepos.length === 0) return null;
+
+        const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+        const workspaceRoots = workspaceFolders.map((f) => LiveVscodeAdapter.normalizePathForCompare(f.uri.fsPath));
+        this.logger.log(`[adapter] getGitModifiedFiles: ${workspaceRoots.length} workspace roots: ${workspaceRoots.join(', ')}`);
+
+        const repos = allRepos.filter((repo) => {
+            const rootUri = (repo as { rootUri: vscode.Uri }).rootUri;
+            if (!rootUri) return true;
+            const inWorkspace = LiveVscodeAdapter.isRepoInWorkspace(rootUri.fsPath, workspaceRoots);
+            this.logger.log(`[adapter] getGitModifiedFiles: repo root=${rootUri.fsPath} inWorkspace=${inWorkspace}`);
+            return inWorkspace;
+        });
+        this.logger.log(`[adapter] getGitModifiedFiles: ${repos.length} workspace-scoped repositories`);
         if (repos.length === 0) return null;
+
         const paths: string[] = [];
         for (const repo of repos) {
             const workingTree = (repo as { state: { workingTreeChanges: unknown[] } }).state.workingTreeChanges ?? [];
@@ -146,7 +161,12 @@ export class LiveVscodeAdapter implements VscodeAdapter {
         });
     }
 
-    private static normalizePathForCompare(value: string): string {
+    static isRepoInWorkspace(repoRootPath: string, normalizedWorkspaceRoots: string[]): boolean {
+        const repoRoot = LiveVscodeAdapter.normalizePathForCompare(repoRootPath);
+        return normalizedWorkspaceRoots.some((wsRoot) => repoRoot.startsWith(wsRoot));
+    }
+
+    static normalizePathForCompare(value: string): string {
         const normalized = value.replace(/\\/g, '/');
         return /^[a-z]:\//i.test(normalized) ? normalized.toLocaleLowerCase() : normalized;
     }

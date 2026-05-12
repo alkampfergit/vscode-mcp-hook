@@ -1,79 +1,58 @@
-# Technical specifications
 
-All the general technical specification are contained here [technical-specifications.md](../backlog/technical-specs.md). 
-When you need to run scripts prefer powershell core that can work both in windows and unix systems.
-All features are contained into backlog/Features folder. Features are ordered, each feature contains a series of sub tasks to implement the feature. 
+- Architecture information are in canonical [ARCHITECTURE.md](ARCHITECTURE.md). Read to know how the code is structure.
 
-# MUST TO FOLLOW RULES
+## 1. Think Before Coding
 
-- After each task ensure that all the tests are passing
-- Always try to write tests for each new piece of code so we have all code testable.
-- If you change the code outside the feature you are working on, always check the ./backlog/Features folder to understand if you need to update the feature reflecting the new changes
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-## Definition of done — a task is NOT complete until all of these pass
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-1. **Compile** — `npx tsc` exits with no errors
-2. **Tests** — `npx jest` shows 0 failing tests
-3. **Lint** — `npx eslint src tests --ext .ts` exits with no errors
+## 2. Simplicity First
 
-Run them in this order after every code change. Do not report a task as done if any of these steps fail.
+**Minimum code that solves the problem. Nothing speculative.**
 
-## Feature layout 
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
 
-- backlog/featurelist.md: A list of all the features
-- backlog/Features: Contains all features, one directory for each feature, with the number of the feature as first part of directory names
-- backlog/Features/X. Feature name: Contains task files that implement that features, ordered by the number at the beginning of the file name
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-## MCP documentation rules
+## 3. Surgical Changes
 
-Every MCP tool exposed by this extension must be documented in **two places**:
+**Touch only what you must. Clean up only your own mess.**
 
-### 1. Technical reference — `docs/tools/<tool_name>.md`
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
 
-Created/updated for every tool add, change, or removal. Must include:
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
 
-- **Name** — the tool identifier as registered with `server.registerTool`
-- **Description** — what the tool does in plain language
-- **Input schema** — every parameter, its type, whether required or optional, and what it means
-- **Return value** — what the tool returns and in what format
-- **Example** — at least one concrete request/response pair
-- Any behavioral quirks, edge cases, or known limitations
+The test: Every changed line should trace directly to the user's request.
 
-Keep `docs/clients.md` up to date if the change affects how clients connect or discover the server.
+## 4. Goal-Driven Execution
 
-### 2. Wiki how-to — `wiki/<tool_name>.md`
+**Define success criteria. Loop until verified.**
 
-Created/updated alongside the technical reference. The wiki page is user-facing
-and must explain **how to invoke** the tool. It must include:
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
 
-- The full MCP tool identifier (`mcp__vscode-mcp-hook__<name>`)
-- How to call it from Claude Code (natural-language prompts that trigger it)
-- How to call it via raw HTTP / curl with at least one concrete `curl` example per parameter combination
-- How to call it from a TypeScript/JS MCP SDK client
-- The response format with a sample output
-- Practical tips (filters, edge cases the user will hit)
-- A link back to the technical reference in `docs/tools/<tool_name>.md`
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
 
-### 3. README tools table
-
-When a tool is added or removed, update the **Tools** table in `README.md`:
-
-- Add a row with the tool name, a one-line description, a link to `wiki/<tool_name>.md`, and a link to `docs/tools/<tool_name>.md`.
-- Remove the row when the tool is deleted.
-- Keep the **Wiki** section table in `README.md` in sync (one row per wiki page).
-
-The definition of done (compile + tests + lint) is not satisfied until both the
-technical reference and the wiki page have been created or updated, and the
-README tables reflect the current tool set.
-
-## Implementation rules
-
-When you are asked to implement a feature you must follow these rules:
-
-- locate the feature number into the folder backlog/Features as for previous layout 
-- Inside the feature folder there are task instruction files.
-- Each task is a markdown file with instruction of what to do
-- Proceed to the implementation
-- After each single feature you should stop and let the user refine the code
-- once the user commit the changes he/she will give you the go-ahead to proceed with the next feature
-- If you added new npm or script or other command, please run to verify that they can run correctly
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
